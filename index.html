@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EcoSim - Buy ECO</title>
+  <meta name="description" content="Connect Phantom on Solana mainnet to buy/transfer USDC to the EcoSim treasury." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="bg">
+    <div class="bg-grain"></div>
+    <div class="bg-glow a"></div>
+    <div class="bg-glow b"></div>
+    <div class="bg-glow c"></div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">ECO</div>
+        <div class="brand-text">
+          <div class="brand-title">EcoSim</div>
+          <div class="brand-sub">Buy ECO</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <a class="pill primary" href="https://t.me/ecosimgamebot?start=inspiringmandazida7e16asta" target="_blank" rel="noreferrer noopener">PLAY</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main app-shell">
+    <section class="section hero app-hero">
+      <div class="hero-card">
+        <div class="hero-badge">
+          <span class="dot"></span> Solana Mainnet • USDC SPL
+        </div>
+        <h1 class="hero-title">Buy ECO</h1>
+        <p class="hero-text">
+          Connect Phantom, send USDC to the EcoSim treasury, and jump straight into the Telegram WebApp.
+        </p>
+      </div>
+    </section>
+
+    <section id="buy" class="section buy-section">
+      <div class="buy-grid">
+        <div class="card buy-panel">
+          <h3>Buy / Transfer USDC</h3>
+          <p class="small">Solana mainnet • USDC mint EPjFWdd5...TDt1v • Decimals 6</p>
+
+          <div class="field">
+            <label>Status</label>
+            <p id="status" class="small">Wallet not connected.</p>
+            <button class="btn primary" id="connectBtn">Connect Phantom</button>
+          </div>
+
+          <div class="field">
+            <label for="amount">USDC Amount (min 10 / max 5000)</label>
+            <input id="amount" type="number" min="10" step="0.01" placeholder="10" />
+            <p class="small">You receive (indicative): <b id="receive">0 ECO</b></p>
+            <p class="small" id="feeEstimate">Est. network fee: -</p>
+          </div>
+
+          <button class="btn primary" id="payBtn">Send USDC to Treasury</button>
+          <div id="result" class="small" style="margin-top:12px; color:var(--muted);"></div>
+
+          <div class="card" style="margin-top:12px;">
+            <div class="card-title">Wallet info</div>
+            <p class="small">Wallet: <span id="walletMini">-</span></p>
+            <p class="small">Total bought: <span id="totalBought">0</span></p>
+            <p class="small">Status: <span id="connStatus">Not connected</span></p>
+          </div>
+        </div>
+
+        <div class="card buy-aside">
+          <h4>Details</h4>
+          <ul class="buy-list">
+            <li><b>Treasury:</b> <span id="treasuryAddress" class="mono"></span></li>
+            <li><b>Network:</b> Solana mainnet</li>
+            <li><b>Wallet:</b> Phantom (browser / mobile compatible)</li>
+            <li><b>Min / Max:</b> 10 - 5000 USDC</li>
+            <li><b>Explorer:</b> Solscan links after each send</li>
+          </ul>
+          <div class="notice small">
+            Keep some SOL in your wallet for fees. Transactions are executed directly from your Phantom wallet to the EcoSim treasury.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="../support.js"></script>
+</body>
+</html>
