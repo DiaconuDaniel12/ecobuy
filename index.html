@@ -6,12 +6,12 @@
   <title>EcoSim - Buy ECO</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: radial-gradient(circle at 20% 20%, rgba(74, 222, 128, 0.05), transparent 40%), #050b18; color: #e5e7eb; }
-    .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(14px); }
-    .glow { box-shadow: 0 18px 48px rgba(74, 222, 128, 0.18), 0 0 24px rgba(74, 222, 128, 0.12); }
+    body { background: radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.08), transparent 40%), #0a0a0f; color: #e5e7eb; }
+    .glass { background: rgba(20, 17, 8, 0.7); backdrop-filter: blur(14px); }
+    .glow { box-shadow: 0 18px 48px rgba(245, 158, 11, 0.28), 0 0 24px rgba(234, 179, 8, 0.18); }
     .pill { border-radius: 999px; }
-    .badge { background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.35); }
-    .btn-primary { background: linear-gradient(135deg, #7dd3fc, #22d3ee); color: #0b1120; box-shadow: 0 10px 30px rgba(125, 211, 252, 0.35); }
+    .badge { background: rgba(251, 191, 36, 0.18); border: 1px solid rgba(252, 211, 77, 0.6); }
+    .btn-primary { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #0b0b0f; box-shadow: 0 10px 30px rgba(251, 191, 36, 0.35); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
     .btn-ghost { border: 1px solid rgba(255,255,255,0.12); color: #e5e7eb; }
   </style>
@@ -32,12 +32,13 @@
         </div>
       </div>
       <nav class="flex items-center gap-2 text-sm">
-        <button class="px-4 py-2 pill border border-cyan-300/40 text-white bg-cyan-500/20">Buy</button>
+        <button class="px-4 py-2 pill border border-amber-300/60 text-white bg-amber-400/20">Buy</button>
         <button class="px-4 py-2 pill border border-white/10 text-slate-200">Stats</button>
         <button class="px-4 py-2 pill border border-white/10 text-slate-200">FAQ</button>
       </nav>
       <div class="flex items-center gap-2">
         <div id="walletPill" class="px-4 py-2 pill glass border border-white/10 text-sm text-slate-200">Not connected</div>
+        <a class="px-4 py-2 pill btn-ghost text-sm font-semibold" href="https://ecosim-site.vercel.app/" target="_blank" rel="noreferrer noopener">Home</a>
         <a class="px-4 py-2 pill btn-primary text-sm font-semibold" href="https://t.me/ecosimgamebot?start=inspiringmandazida7e16asta" target="_blank" rel="noreferrer noopener">PLAY</a>
       </div>
     </div>
@@ -53,10 +54,10 @@
         </div>
         <h2 class="text-white text-xl font-bold mb-3">Round Details</h2>
         <div class="flex flex-wrap gap-2 mb-3 text-xs">
-          <span class="px-3 py-1 pill badge text-lime-100 border-lime-300/50">Token: ECO</span>
-          <span class="px-3 py-1 pill badge text-cyan-100 border-cyan-300/50">Network: Solana</span>
-          <span class="px-3 py-1 pill badge text-slate-100 border-white/30">Hard cap: 100 SOL</span>
-          <span class="px-3 py-1 pill badge text-slate-100 border-white/30">Price: 500k ECO / 1 SOL</span>
+          <span class="px-3 py-1 pill badge text-amber-100">Token: ECO</span>
+          <span class="px-3 py-1 pill badge text-amber-100">Network: Solana</span>
+          <span class="px-3 py-1 pill badge text-amber-100">Hard cap: 100 SOL</span>
+          <span class="px-3 py-1 pill badge text-amber-100">Price: 500k ECO / 1 SOL or 50k ECO / 1 USDC</span>
         </div>
         <div class="space-y-2 text-sm text-slate-100">
           <div class="flex justify-between rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2">
@@ -91,7 +92,7 @@
         </div>
 
         <div class="text-sm text-slate-200">
-          Price: <b>500,000 ECO / 1 SOL</b> - Hard cap: <b>100 SOL</b>
+          Price: <b>500,000 ECO / 1 SOL</b> - or - <b>50,000 ECO / 1 USDC</b>
         </div>
 
         <div class="flex gap-2 text-xs text-slate-300">
@@ -99,15 +100,27 @@
         </div>
 
         <div class="space-y-2">
-          <label class="text-sm text-slate-200" for="amount">SOL Amount (min 0.1)</label>
-          <input id="amount" type="number" min="0.1" step="0.01" placeholder="0.1" class="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-white">
+          <div class="flex gap-3 flex-col sm:flex-row">
+            <div class="flex-1">
+              <label class="text-sm text-slate-200" for="amount">Amount</label>
+              <input id="amount" type="number" min="0.1" step="0.01" placeholder="0.1" class="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-white">
+            </div>
+            <div class="w-full sm:w-40">
+              <label class="text-sm text-slate-200" for="payToken">Pay with</label>
+              <select id="payToken" class="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-white">
+                <option value="SOL">SOL</option>
+                <option value="USDC">USDC</option>
+              </select>
+            </div>
+          </div>
           <div class="flex flex-wrap gap-2 text-xs">
-            <button data-pct="10" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">10%</button>
-            <button data-pct="25" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">25%</button>
-            <button data-pct="50" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">50%</button>
-            <button data-pct="100" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">MAX</button>
+            <button data-pct="10" class="px-3 py-1 rounded-full border border-amber-300/60 text-amber-100 hover:bg-amber-300/10">10%</button>
+            <button data-pct="25" class="px-3 py-1 rounded-full border border-amber-300/60 text-amber-100 hover:bg-amber-300/10">25%</button>
+            <button data-pct="50" class="px-3 py-1 rounded-full border border-amber-300/60 text-amber-100 hover:bg-amber-300/10">50%</button>
+            <button data-pct="100" class="px-3 py-1 rounded-full border border-amber-300/60 text-amber-100 hover:bg-amber-300/10">MAX</button>
           </div>
           <p class="text-xs text-slate-400" id="feeEstimate">Est. network fee: -</p>
+          <p class="text-xs text-amber-200" id="ecoEstimate">You receive: - ECO</p>
         </div>
 
         <div class="grid gap-2 md:grid-cols-3">

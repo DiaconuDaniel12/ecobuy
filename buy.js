@@ -36,7 +36,12 @@ const connectBtn = document.getElementById("connectBtn");
 const payBtn = document.getElementById("payBtn");
 const copyBtn = document.getElementById("copyBtn");
 const amountInput = document.getElementById("amount");
+const payTokenSelect = document.getElementById("payToken");
 const feeEstimateEl = document.getElementById("feeEstimate");
+const ecoEstimateEl = document.getElementById("ecoEstimate");
+
+const ECO_PER_SOL = 500000;
+const ECO_PER_USDC = 50000;
 
 let firebaseApp;
 if (!getApps().length) {
@@ -59,6 +64,21 @@ const setMessage = (msg, color = "text-cyan-200") => {
 };
 
 const shorten = (addr) => (addr ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : "-");
+
+const getEcoAmount = () => {
+  const amt = Number(amountInput.value);
+  if (!amt || amt <= 0) return 0;
+  const token = payTokenSelect.value;
+  if (token === "USDC") return Math.round(amt * ECO_PER_USDC);
+  return Math.round(amt * ECO_PER_SOL);
+};
+
+const updateEcoEstimate = () => {
+  const ecoAmount = getEcoAmount();
+  ecoEstimateEl.textContent = ecoAmount
+    ? `You receive: ${ecoAmount.toLocaleString()} ECO`
+    : "You receive: - ECO";
+};
 
 const updateStatusUI = () => {
   const connected = !!currentWallet;
@@ -152,12 +172,17 @@ async function onBuy() {
     setMessage("Enter a valid amount", "text-amber-300");
     return;
   }
+  const ecoAmount = getEcoAmount();
+  if (!ecoAmount) {
+    setMessage("Amount too small", "text-amber-300");
+    return;
+  }
   try {
-    const ecoAmount = Math.round(amt * 500000);
     await recordPurchase(currentWallet, ecoAmount);
     await loadUserStats(currentWallet);
+    const tokenLabel = payTokenSelect.value;
     setMessage(
-      `Recorded purchase (demo). ${amt} SOL (~${ecoAmount} ECO). TODO: verify on-chain.`,
+      `Recorded purchase (demo). ${amt} ${tokenLabel} (~${ecoAmount} ECO). TODO: verify on-chain.`,
       "text-cyan-200"
     );
   } catch (err) {
@@ -179,7 +204,10 @@ function init() {
   connectBtn.addEventListener("click", () => connectPhantom());
   payBtn.addEventListener("click", () => onBuy());
   copyBtn.addEventListener("click", () => copyPresale());
+  amountInput.addEventListener("input", updateEcoEstimate);
+  payTokenSelect.addEventListener("change", updateEcoEstimate);
   setupPercentButtons();
+  updateEcoEstimate();
 }
 
 init();
