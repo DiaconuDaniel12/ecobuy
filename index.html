@@ -1,98 +1,132 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EcoSim - Buy ECO</title>
-  <meta name="description" content="Connect Phantom on Solana mainnet to buy/transfer USDC to the EcoSim treasury." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: radial-gradient(circle at 20% 20%, rgba(74, 222, 128, 0.05), transparent 40%), #050b18; color: #e5e7eb; }
+    .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(14px); }
+    .glow { box-shadow: 0 18px 48px rgba(74, 222, 128, 0.18), 0 0 24px rgba(74, 222, 128, 0.12); }
+    .pill { border-radius: 999px; }
+    .badge { background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.35); }
+    .btn-primary { background: linear-gradient(135deg, #7dd3fc, #22d3ee); color: #0b1120; box-shadow: 0 10px 30px rgba(125, 211, 252, 0.35); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+    .btn-ghost { border: 1px solid rgba(255,255,255,0.12); color: #e5e7eb; }
+  </style>
 </head>
-<body>
-  <div class="bg">
-    <div class="bg-grain"></div>
-    <div class="bg-glow a"></div>
-    <div class="bg-glow b"></div>
-    <div class="bg-glow c"></div>
+<body class="min-h-screen">
+  <div class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 opacity-90 pointer-events-none"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_15%_30%,rgba(74,222,128,0.12),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(34,211,238,0.15),transparent_40%)] pointer-events-none"></div>
   </div>
 
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="brand-mark">ECO</div>
-        <div class="brand-text">
-          <div class="brand-title">EcoSim</div>
-          <div class="brand-sub">Buy ECO</div>
+  <header class="relative z-10">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-10 w-10 rounded-2xl bg-cyan-400/20 border border-cyan-300/40 grid place-items-center text-cyan-100 font-black">E</div>
+        <div>
+          <div class="text-white font-bold text-lg">EcoSim</div>
+          <div class="text-slate-400 text-xs">Buy ECO (Solana)</div>
         </div>
       </div>
-      <div class="topbar-actions">
-        <a class="pill primary" href="https://t.me/ecosimgamebot?start=inspiringmandazida7e16asta" target="_blank" rel="noreferrer noopener">PLAY</a>
+      <nav class="flex items-center gap-2 text-sm">
+        <button class="px-4 py-2 pill border border-cyan-300/40 text-white bg-cyan-500/20">Buy</button>
+        <button class="px-4 py-2 pill border border-white/10 text-slate-200">Stats</button>
+        <button class="px-4 py-2 pill border border-white/10 text-slate-200">FAQ</button>
+      </nav>
+      <div class="flex items-center gap-2">
+        <div id="walletPill" class="px-4 py-2 pill glass border border-white/10 text-sm text-slate-200">Not connected</div>
+        <a class="px-4 py-2 pill btn-primary text-sm font-semibold" href="https://t.me/ecosimgamebot?start=inspiringmandazida7e16asta" target="_blank" rel="noreferrer noopener">PLAY</a>
       </div>
     </div>
   </header>
 
-  <main class="main app-shell">
-    <section class="section hero app-hero">
-      <div class="hero-card">
-        <div class="hero-badge">
-          <span class="dot"></span> Solana Mainnet • USDC SPL
+  <main class="relative z-10 max-w-6xl mx-auto px-4 pb-12">
+    <section class="grid gap-4 md:grid-cols-2">
+      <!-- Round Details -->
+      <div class="glass glow rounded-2xl border border-white/10 p-5">
+        <div class="flex items-center gap-2 text-sm text-amber-200 mb-3">
+          <span class="inline-flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]"></span>
+          Early Access
         </div>
-        <h1 class="hero-title">Buy ECO</h1>
-        <p class="hero-text">
-          Connect Phantom, send USDC to the EcoSim treasury, and jump straight into the Telegram WebApp.
-        </p>
-      </div>
-    </section>
-
-    <section id="buy" class="section buy-section">
-      <div class="buy-grid">
-        <div class="card buy-panel">
-          <h3>Buy / Transfer USDC</h3>
-          <p class="small">Solana mainnet • USDC mint EPjFWdd5...TDt1v • Decimals 6</p>
-
-          <div class="field">
-            <label>Status</label>
-            <p id="status" class="small">Wallet not connected.</p>
-            <button class="btn primary" id="connectBtn">Connect Phantom</button>
+        <h2 class="text-white text-xl font-bold mb-3">Round Details</h2>
+        <div class="flex flex-wrap gap-2 mb-3 text-xs">
+          <span class="px-3 py-1 pill badge text-lime-100 border-lime-300/50">Token: ECO</span>
+          <span class="px-3 py-1 pill badge text-cyan-100 border-cyan-300/50">Network: Solana</span>
+          <span class="px-3 py-1 pill badge text-slate-100 border-white/30">Hard cap: 100 SOL</span>
+          <span class="px-3 py-1 pill badge text-slate-100 border-white/30">Price: 500k ECO / 1 SOL</span>
+        </div>
+        <div class="space-y-2 text-sm text-slate-100">
+          <div class="flex justify-between rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2">
+            <span>Presale Supply</span><span>25,000,000 ECO (2.5%)</span>
           </div>
-
-          <div class="field">
-            <label for="amount">USDC Amount (min 10 / max 5000)</label>
-            <input id="amount" type="number" min="10" step="0.01" placeholder="10" />
-            <p class="small">You receive (indicative): <b id="receive">0 ECO</b></p>
-            <p class="small" id="feeEstimate">Est. network fee: -</p>
-          </div>
-
-          <button class="btn primary" id="payBtn">Send USDC to Treasury</button>
-          <div id="result" class="small" style="margin-top:12px; color:var(--muted);"></div>
-
-          <div class="card" style="margin-top:12px;">
-            <div class="card-title">Wallet info</div>
-            <p class="small">Wallet: <span id="walletMini">-</span></p>
-            <p class="small">Total bought: <span id="totalBought">0</span></p>
-            <p class="small">Status: <span id="connStatus">Not connected</span></p>
+          <div class="flex justify-between rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2">
+            <span>Target</span><span>$30,000</span>
           </div>
         </div>
-
-        <div class="card buy-aside">
-          <h4>Details</h4>
-          <ul class="buy-list">
-            <li><b>Treasury:</b> <span id="treasuryAddress" class="mono"></span></li>
-            <li><b>Network:</b> Solana mainnet</li>
-            <li><b>Wallet:</b> Phantom (browser / mobile compatible)</li>
-            <li><b>Min / Max:</b> 10 - 5000 USDC</li>
-            <li><b>Explorer:</b> Solscan links after each send</li>
+        <div class="mt-3 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-3">
+          <div class="text-white font-semibold mb-1">Vesting (Super-Early)</div>
+          <ul class="text-slate-200 text-sm space-y-1 list-disc pl-4">
+            <li>10% unlock at TGE</li>
+            <li>30-day cliff</li>
+            <li>90% linear over 6 months</li>
           </ul>
-          <div class="notice small">
-            Keep some SOL in your wallet for fees. Transactions are executed directly from your Phantom wallet to the EcoSim treasury.
+        </div>
+        <p class="text-xs text-slate-400 mt-3">Disclaimer: EcoSim presale is experimental. Participation is voluntary.</p>
+      </div>
+
+      <!-- Buy Card -->
+      <div class="glass glow rounded-2xl border border-white/10 p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-slate-300">Buy ECO</div>
+            <div class="text-lg font-bold text-white">Solana -> Phantom</div>
           </div>
+          <div class="flex gap-2">
+            <img src="./assets/solana-logo.png" alt="Solana" class="w-6 h-6">
+            <img src="./assets/usd-coin.png" alt="USDC" class="w-6 h-6">
+          </div>
+        </div>
+
+        <div class="text-sm text-slate-200">
+          Price: <b>500,000 ECO / 1 SOL</b> - Hard cap: <b>100 SOL</b>
+        </div>
+
+        <div class="flex gap-2 text-xs text-slate-300">
+          <span class="px-3 py-1 pill badge text-lime-100 border-lime-300/50">Treasury: <span id="treasuryAddress" class="mono">-</span></span>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm text-slate-200" for="amount">SOL Amount (min 0.1)</label>
+          <input id="amount" type="number" min="0.1" step="0.01" placeholder="0.1" class="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-white">
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button data-pct="10" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">10%</button>
+            <button data-pct="25" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">25%</button>
+            <button data-pct="50" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">50%</button>
+            <button data-pct="100" class="px-3 py-1 rounded-full border border-cyan-300/50 text-cyan-100 hover:bg-cyan-300/10">MAX</button>
+          </div>
+          <p class="text-xs text-slate-400" id="feeEstimate">Est. network fee: -</p>
+        </div>
+
+        <div class="grid gap-2 md:grid-cols-3">
+          <button class="btn-primary pill px-4 py-2 text-sm font-semibold md:col-span-1" id="connectBtn">Connect Phantom</button>
+          <button class="btn-primary pill px-4 py-2 text-sm font-semibold md:col-span-1" id="payBtn" disabled title="Connect wallet first">Buy ECO</button>
+          <button class="btn-ghost pill px-4 py-2 text-sm font-semibold md:col-span-1" id="copyBtn">Copy Presale Wallet</button>
+        </div>
+
+        <div class="rounded-xl border border-white/10 bg-slate-900/60 p-3 text-sm text-slate-200 space-y-1">
+          <div>Wallet: <span id="walletMini">-</span></div>
+          <div>Total bought (ECO): <span id="totalBought">0</span></div>
+          <div>Points: <span id="points">0</span></div>
+          <div>Status: <span id="connStatus">Not connected</span></div>
+          <div id="result" class="text-xs text-cyan-200"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <script type="module" src="../support.js"></script>
+  <script type="module" src="./buy.js"></script>
 </body>
 </html>
