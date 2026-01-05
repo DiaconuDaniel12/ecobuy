@@ -1,5 +1,5 @@
-// buy.js v30
-console.log("EcoSim buy.js v30 loaded");
+// buy.js v31
+console.log("EcoSim buy.js v31 loaded");
 import {
   initializeApp,
   getApps,
@@ -16,7 +16,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Solana libs (browser bundle + fallback)
-const WEB3_URL = "https://esm.sh/@solana/web3.js@1.91.7?target=es2020&bundle&no-dts";
+const WEB3_URL = "https://esm.sh/@solana/web3.js@1.91.7?target=es2020&bundle&no-dts&no-check";
 const WEB3_FALLBACK = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.7/lib/index.browser.esm.js";
 const SPL_URL = "https://cdn.jsdelivr.net/npm/@solana/spl-token@0.3.11/+esm?v=2";
 const SPL_FALLBACK = "https://esm.sh/@solana/spl-token@0.3.11?target=es2020&v=2";
@@ -459,25 +459,11 @@ async function resolveOwnerUsdcAta() {
   return new PublicKey(currentUsdcAta);
 }
 
-async function transferUsdc(amount) {
-  const { PublicKey, Transaction } = web3;
-  const {
-    createTransferCheckedInstruction
-  } = spl;
-
-  const owner = new PublicKey(wallet);
-  const mint = new PublicKey(USDC_MINT);
-  const treasury = new PublicKey(TREASURY);
-
-  const fromAta = await resolveOwnerUsdcAta();
-  const { ata: toAta, ix: createToAta } = await ensureAta(treasury, mint, owner);
-
-  const tx = new Transaction();
+function buildUsdcTx({ fromAta, toAta, mint, owner, amountBase, createToAta }) {
+  const tx = new web3.Transaction();
   if (createToAta) tx.add(createToAta);
-
-  const amountBase = Math.round(amount * 10 ** USDC_DECIMALS);
   tx.add(
-    createTransferCheckedInstruction(
+    spl.createTransferCheckedInstruction(
       fromAta,
       mint,
       toAta,
@@ -486,41 +472,90 @@ async function transferUsdc(amount) {
       USDC_DECIMALS
     )
   );
+  return tx;
+}
 
-  tx.feePayer = owner;
-  let blockhashObj;
-  try {
-    blockhashObj = await connection.getLatestBlockhash();
-  } catch (err) {
-    if (isRpcForbidden(err)) {
-      const switched = await rotateRpc();
-      if (switched) {
-        blockhashObj = await connection.getLatestBlockhash();
+async function sendWithFreshBlockhash(makeTx, owner) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let bh;
+    try {
+      bh = await connection.getLatestBlockhash("finalized");
+    } catch (err) {
+      if (isRpcForbidden(err) && (await rotateRpc())) {
+        bh = await connection.getLatestBlockhash("finalized");
       } else {
-        setMessage("RPC blocked (403). Please change RPC endpoint.", "text-amber-300");
+        throw err;
       }
     }
-    throw err;
-  }
-  const { blockhash, lastValidBlockHeight } = blockhashObj;
-  tx.recentBlockhash = blockhash;
+    const { blockhash, lastValidBlockHeight } = bh;
+    const tx = makeTx();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = owner;
 
-  let signature = "";
-  if (provider.signAndSendTransaction) {
-    const res = await provider.signAndSendTransaction(tx);
-    signature = res.signature || res;
-  } else if (provider.signTransaction) {
-    const signed = await provider.signTransaction(tx);
-    signature = await connection.sendRawTransaction(signed.serialize());
-  } else {
-    throw new Error("Wallet cannot sign and send transactions.");
-  }
+    try {
+      let signature = "";
+      if (provider.signAndSendTransaction) {
+        const res = await provider.signAndSendTransaction(tx, {
+          skipPreflight: false,
+          preflightCommitment: "processed"
+        });
+        signature = res.signature || res;
+      } else if (provider.signTransaction) {
+        const signed = await provider.signTransaction(tx);
+        signature = await connection.sendRawTransaction(signed.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "processed",
+          maxRetries: 3
+        });
+      } else {
+        throw new Error("Wallet cannot sign and send transactions.");
+      }
 
-  await connection.confirmTransaction(
-    { signature, blockhash, lastValidBlockHeight },
-    "confirmed"
+      await connection.confirmTransaction(
+        { signature, blockhash, lastValidBlockHeight },
+        "confirmed"
+      );
+      return signature;
+    } catch (err) {
+      lastErr = err;
+      const msg = (err?.message || "").toLowerCase();
+      if (
+        msg.includes("expired") ||
+        msg.includes("block height") ||
+        msg.includes("blockhash")
+      ) {
+        // retry with a fresh blockhash
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr || new Error("Transaction failed after retries.");
+}
+
+async function transferUsdc(amount) {
+  const { PublicKey } = web3;
+  const owner = new PublicKey(wallet);
+  const mint = new PublicKey(USDC_MINT);
+  const treasury = new PublicKey(TREASURY);
+
+  const fromAta = await resolveOwnerUsdcAta();
+  const { ata: toAta, ix: createToAta } = await ensureAta(treasury, mint, owner);
+  const amountBase = Math.round(amount * 10 ** USDC_DECIMALS);
+
+  return sendWithFreshBlockhash(
+    () =>
+      buildUsdcTx({
+        fromAta,
+        toAta,
+        mint,
+        owner,
+        amountBase,
+        createToAta
+      }),
+    owner
   );
-  return signature;
 }
 
 async function onBuy() {
