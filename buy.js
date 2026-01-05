@@ -1,5 +1,5 @@
-// buy.js v4
-console.log("EcoSim buy.js v4 loaded");
+// buy.js v5
+console.log("EcoSim buy.js v5 loaded");
 import {
   initializeApp,
   getApps,
@@ -83,6 +83,7 @@ let wallet = null;
 let currentUsdcBalance = null;
 let currentUsdcAta = null;
 let lastSignature = null;
+let providerEventsBound = false;
 
 // Module + wallet helpers
 async function loadModule(primary, fallback) {
@@ -104,6 +105,45 @@ function getProvider() {
     }
   }
   return null;
+}
+
+function bindProviderEvents(p) {
+  if (!p || providerEventsBound || !p.on) return;
+  providerEventsBound = true;
+
+  p.on("connect", async (pubkey) => {
+    wallet = (pubkey || p.publicKey)?.toString?.() || null;
+    await ensureUserDocument(wallet);
+    await loadUserStats(wallet);
+    await fetchUsdcBalance();
+    updateStatusUI();
+    setMessage("Wallet connected", "text-cyan-200");
+  });
+
+  p.on("disconnect", () => {
+    wallet = null;
+    currentUsdcBalance = null;
+    currentUsdcAta = null;
+    updateStatusUI();
+    setMessage("Wallet disconnected", "text-amber-300");
+  });
+
+  p.on("accountChanged", async (newPubkey) => {
+    if (!newPubkey) {
+      wallet = null;
+      currentUsdcBalance = null;
+      currentUsdcAta = null;
+      updateStatusUI();
+      setMessage("Wallet disconnected", "text-amber-300");
+      return;
+    }
+    wallet = newPubkey.toString();
+    await ensureUserDocument(wallet);
+    await loadUserStats(wallet);
+    await fetchUsdcBalance();
+    updateStatusUI();
+    setMessage("Account changed", "text-cyan-200");
+  });
 }
 
 async function ensureUserDocument(walletAddress) {
@@ -404,6 +444,18 @@ async function start() {
   if (els.feeEstimate) els.feeEstimate.textContent = "Est. network fee: tiny SOL (for transactions)";
   updateEcoEstimate();
   updateStatusUI();
+
+  // Re-attach provider events and restore session only if provider is already connected
+  provider = getProvider();
+  bindProviderEvents(provider);
+  if (provider?.isConnected && provider.publicKey) {
+    wallet = provider.publicKey.toString();
+    await ensureUserDocument(wallet);
+    await loadUserStats(wallet);
+    await fetchUsdcBalance();
+    updateStatusUI();
+    setMessage("Wallet session restored", "text-cyan-200");
+  }
 
   els.amountInput?.addEventListener("input", () => {
     updateEcoEstimate();
