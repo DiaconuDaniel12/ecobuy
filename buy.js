@@ -1,5 +1,5 @@
-// buy.js v12
-console.log("EcoSim buy.js v12 loaded");
+// buy.js v13
+console.log("EcoSim buy.js v13 loaded");
 import {
   initializeApp,
   getApps,
@@ -30,9 +30,9 @@ const USDC_MINT =
 const RPC_ENDPOINTS =
   NETWORK === "mainnet-beta"
     ? [
-        "https://api.mainnet-beta.solana.com",
-        "https://solana-api.projectserum.com",
         "https://rpc.ankr.com/solana",
+        "https://solana-api.projectserum.com",
+        "https://api.mainnet-beta.solana.com",
         "https://solana-mainnet.rpcpool.com"
       ]
     : [
@@ -93,6 +93,7 @@ let currentUsdcAta = null;
 let lastSignature = null;
 let providerEventsBound = false;
 let rpcEndpointInUse = "";
+let rpcIndex = 0;
 
 // Module + wallet helpers
 async function loadModule(primary, fallback) {
@@ -226,6 +227,10 @@ async function ensureAta(owner, mint, payer) {
   } catch (err) {
     console.error("ATA lookup failed", err);
     if (isRpcForbidden(err)) {
+      const switched = await rotateRpc();
+      if (switched) {
+        return ensureAta(owner, mint, payer);
+      }
       throw new Error("RPC blocked (403). Please switch to a different RPC.");
     }
   }
@@ -320,12 +325,38 @@ function isRpcForbidden(err) {
   return msg.includes("403") || msg.includes("forbidden");
 }
 
+async function setConnection(idx = 0) {
+  const url = RPC_ENDPOINTS[idx % RPC_ENDPOINTS.length];
+  const conn = new web3.Connection(url, "confirmed");
+  await conn.getVersion();
+  connection = conn;
+  rpcEndpointInUse = url;
+  rpcIndex = idx % RPC_ENDPOINTS.length;
+  console.log("RPC selected:", url);
+}
+
+async function rotateRpc() {
+  const total = RPC_ENDPOINTS.length;
+  for (let step = 1; step <= total; step++) {
+    const next = (rpcIndex + step) % total;
+    try {
+      await setConnection(next);
+      return true;
+    } catch (err) {
+      console.warn("RPC failed", RPC_ENDPOINTS[next], err?.message || err);
+    }
+  }
+  return false;
+}
+
 async function initConnection() {
   for (const url of RPC_ENDPOINTS) {
     try {
       const conn = new web3.Connection(url, "confirmed");
       await conn.getVersion();
+      connection = conn;
       rpcEndpointInUse = url;
+      rpcIndex = RPC_ENDPOINTS.indexOf(url);
       console.log("RPC selected:", url);
       return conn;
     } catch (err) {
@@ -368,6 +399,10 @@ async function resolveOwnerUsdcAta() {
     resp = await connection.getParsedTokenAccountsByOwner(owner, { mint });
   } catch (err) {
     if (isRpcForbidden(err)) {
+      const switched = await rotateRpc();
+      if (switched) {
+        return resolveOwnerUsdcAta();
+      }
       throw new Error("RPC blocked (403). Please switch RPC.");
     }
     throw err;
@@ -423,7 +458,12 @@ async function transferUsdc(amount) {
     blockhashObj = await connection.getLatestBlockhash();
   } catch (err) {
     if (isRpcForbidden(err)) {
-      setMessage("RPC blocked (403). Please change RPC endpoint.", "text-amber-300");
+      const switched = await rotateRpc();
+      if (switched) {
+        blockhashObj = await connection.getLatestBlockhash();
+      } else {
+        setMessage("RPC blocked (403). Please change RPC endpoint.", "text-amber-300");
+      }
     }
     throw err;
   }
