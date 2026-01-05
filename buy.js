@@ -1,3 +1,5 @@
+// buy.js v4
+console.log("EcoSim buy.js v4 loaded");
 import {
   initializeApp,
   getApps,
