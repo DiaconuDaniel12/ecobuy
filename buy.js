@@ -1,5 +1,5 @@
-// buy.js v5
-console.log("EcoSim buy.js v5 loaded");
+// buy.js v6
+console.log("EcoSim buy.js v6 loaded");
 import {
   initializeApp,
   getApps,
@@ -208,6 +208,19 @@ async function recordPurchase(walletAddress, ecoAmount, signature, usdcAmount) {
   }
 }
 
+async function ensureAta(owner, mint, payer) {
+  const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } = spl;
+  const ata = await getAssociatedTokenAddress(mint, owner, false);
+  let info = null;
+  try {
+    info = await connection.getAccountInfo(ata);
+  } catch (err) {
+    console.error("ATA lookup failed", err);
+  }
+  const ix = info ? null : createAssociatedTokenAccountInstruction(payer, ata, owner, mint);
+  return { ata, ix, exists: !!info };
+}
+
 // Helpers
 const shorten = (addr) =>
   addr ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : "-";
@@ -248,11 +261,11 @@ const updateStatusUI = () => {
   if (els.lastTx)
     els.lastTx.textContent = lastSignature ? lastSignature : "-";
 
-  const disableBuy = !connected || currentUsdcBalance === null || currentUsdcAta === null || amountInvalid;
+  const disableBuy = !connected || amountInvalid;
   if (els.payBtn) {
     els.payBtn.disabled = disableBuy;
     els.payBtn.title = disableBuy
-      ? `Connect wallet, load balance, amount ${MIN_USDC}-${MAX_USDC} USDC`
+      ? `Connect wallet, amount ${MIN_USDC}-${MAX_USDC} USDC`
       : "";
   }
 };
@@ -308,8 +321,6 @@ async function connectPhantom() {
 async function transferUsdc(amount) {
   const { PublicKey, Transaction } = web3;
   const {
-    getAssociatedTokenAddress,
-    createAssociatedTokenAccountInstruction,
     createTransferCheckedInstruction
   } = spl;
 
@@ -317,16 +328,14 @@ async function transferUsdc(amount) {
   const mint = new PublicKey(USDC_MINT);
   const treasury = new PublicKey(TREASURY);
 
-  const fromAta = new PublicKey(currentUsdcAta);
-  const toAta = await getAssociatedTokenAddress(mint, treasury, false);
-  let toInfo = await connection.getAccountInfo(toAta);
+  const { ata: fromAta, exists: fromExists } = await ensureAta(owner, mint, owner);
+  if (!fromExists) {
+    throw new Error("No USDC found in your wallet (ATA missing).");
+  }
+  const { ata: toAta, ix: createToAta } = await ensureAta(treasury, mint, owner);
 
   const tx = new Transaction();
-  if (!toInfo) {
-    tx.add(
-      createAssociatedTokenAccountInstruction(owner, toAta, treasury, mint)
-    );
-  }
+  if (createToAta) tx.add(createToAta);
 
   const amountBase = Math.round(amount * 10 ** USDC_DECIMALS);
   tx.add(
@@ -369,11 +378,7 @@ async function onBuy() {
     return;
   }
   if (currentUsdcBalance === null || currentUsdcAta === null) {
-    setMessage(
-      "Cannot read USDC balance. Reconnect wallet and try again.",
-      "text-amber-300"
-    );
-    return;
+    await fetchUsdcBalance();
   }
   const amt = Number(els.amountInput?.value);
   if (!amt || Number.isNaN(amt) || !Number.isFinite(amt)) {
@@ -384,7 +389,7 @@ async function onBuy() {
     setMessage(`Amount must be between ${MIN_USDC} and ${MAX_USDC} USDC.`, "text-amber-300");
     return;
   }
-  if (amt > currentUsdcBalance) {
+  if (currentUsdcBalance !== null && amt > currentUsdcBalance) {
     setMessage("Not enough USDC. Top up your wallet.", "text-amber-300");
     return;
   }
