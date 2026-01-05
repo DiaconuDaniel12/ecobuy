@@ -1,5 +1,5 @@
-// buy.js v7
-console.log("EcoSim buy.js v7 loaded");
+// buy.js v8
+console.log("EcoSim buy.js v8 loaded");
 import {
   initializeApp,
   getApps,
@@ -390,7 +390,7 @@ async function onBuy() {
     return;
   }
   if (currentUsdcBalance !== null && amt > currentUsdcBalance) {
-    setMessage("Not enough USDC (not money).", "text-amber-300");
+    setMessage("Not enough USDC. Top up or try a smaller amount.", "text-amber-300");
     return;
   }
 
