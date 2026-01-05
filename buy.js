@@ -1,5 +1,5 @@
-// buy.js v21
-console.log("EcoSim buy.js v21 loaded");
+// buy.js v22
+console.log("EcoSim buy.js v22 loaded");
 import {
   initializeApp,
   getApps,
@@ -29,6 +29,15 @@ const USDC_MINT =
     : "BXXkv6z8ykpGqxpnj6oJ4j5LZb5uMY15qbt7MUH3Y2bU";
 // If you have a private RPC (Helius/QuickNode/etc.), set via ?rpc=YOUR_URL or fill below
 let CUSTOM_RPC = "";
+try {
+  const stored = localStorage.getItem("customRpc");
+  if (stored) {
+    CUSTOM_RPC = stored;
+    console.log("Custom RPC from localStorage:", CUSTOM_RPC);
+  }
+} catch (_) {
+  // ignore storage errors
+}
 try {
   const params = new URLSearchParams(window.location.search);
   const rpcParam = params.get("rpc");
@@ -388,7 +397,7 @@ async function initConnection() {
       console.warn("RPC failed", url, err?.message || err);
     }
   }
-  throw new Error("All RPC endpoints blocked. Please set a custom RPC.");
+  throw new Error("All RPC endpoints blocked. Please set a custom RPC (Helius/QuickNode/etc.). Use ?rpc=... or localStorage.setItem('customRpc','<url>').");
 }
 
 async function connectPhantom() {
