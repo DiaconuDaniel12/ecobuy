@@ -234,7 +234,9 @@ async function recordPurchase(walletAddress, ecoAmount, signature, usdcAmount) {
 
   const updates = {};
   if (ecoInt) updates.totalBought = increment(ecoInt);
+  if (ecoInt) updates.totalBoughtEco = increment(ecoInt);
   if (pointsEarned) updates.points = increment(pointsEarned);
+  updates.purchaseCount = increment(1);
   if (Object.keys(updates).length) {
     await updateDoc(ref, updates);
   }
