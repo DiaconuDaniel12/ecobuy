@@ -1,5 +1,5 @@
-// buy.js v26
-console.log("EcoSim buy.js v26 loaded");
+// buy.js v27
+console.log("EcoSim buy.js v27 loaded");
 import {
   initializeApp,
   getApps,
@@ -15,9 +15,9 @@ import {
   increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Solana libs (ESM, with fallback) – same pattern as support.js
-const WEB3_URL = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.4/+esm?v=2";
-const WEB3_FALLBACK = "https://esm.sh/@solana/web3.js@1.91.4?target=es2020&v=2";
+// Solana libs (browser ESM + fallback)
+const WEB3_URL = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.7/lib/index.browser.esm.js";
+const WEB3_FALLBACK = "https://esm.sh/@solana/web3.js@1.91.7?target=es2020&bundle&no-dts";
 const SPL_URL = "https://cdn.jsdelivr.net/npm/@solana/spl-token@0.3.11/+esm?v=2";
 const SPL_FALLBACK = "https://esm.sh/@solana/spl-token@0.3.11?target=es2020&v=2";
 
