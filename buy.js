@@ -130,7 +130,6 @@ const updateStatusUI = () => {
       : "";
   }
 };
-}
 
 async function fetchUsdcBalance() {
   if (!wallet || !connection) return;
@@ -324,5 +323,4 @@ start().catch((e) => {
   console.error("Init failed", e);
   setMessage("Could not load Solana modules.", "text-rose-300");
 });
-
 
