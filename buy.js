@@ -1,5 +1,5 @@
-// buy.js v31
-console.log("EcoSim buy.js v31 loaded");
+// buy.js v32
+console.log("EcoSim buy.js v32 loaded");
 import {
   initializeApp,
   getApps,
@@ -512,11 +512,19 @@ async function sendWithFreshBlockhash(makeTx, owner) {
         throw new Error("Wallet cannot sign and send transactions.");
       }
 
-      await connection.confirmTransaction(
-        { signature, blockhash, lastValidBlockHeight },
-        "confirmed"
-      );
-      return signature;
+      // Poll status to avoid websocket dependencies
+      let confirmed = false;
+      for (let tries = 0; tries < 15 && !confirmed; tries++) {
+        const st = await connection.getSignatureStatuses([signature]);
+        const s = st?.value?.[0];
+        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
+          confirmed = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      if (confirmed) return signature;
+      lastErr = new Error("Signature not confirmed (polling timeout)");
     } catch (err) {
       lastErr = err;
       const msg = (err?.message || "").toLowerCase();
@@ -643,7 +651,8 @@ async function start() {
     }
   };
 
-  web3 = await load(WEB3_URL, WEB3_FALLBACK);
+  // prefer global from IIFE to avoid ws/buffer issues, fallback to ESM
+  web3 = window.solanaWeb3 || (await load(WEB3_URL, WEB3_FALLBACK));
   spl = await load(SPL_URL, SPL_FALLBACK);
   connection = await initConnection();
   if (els.treasury) els.treasury.textContent = TREASURY;
