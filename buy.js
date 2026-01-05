@@ -1,5 +1,5 @@
-// buy.js v10
-console.log("EcoSim buy.js v10 loaded");
+// buy.js v12
+console.log("EcoSim buy.js v12 loaded");
 import {
   initializeApp,
   getApps,
@@ -27,10 +27,18 @@ const USDC_MINT =
   NETWORK === "mainnet-beta"
     ? "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
     : "BXXkv6z8ykpGqxpnj6oJ4j5LZb5uMY15qbt7MUH3Y2bU";
-const RPC_URL =
+const RPC_ENDPOINTS =
   NETWORK === "mainnet-beta"
-    ? "https://api.mainnet-beta.solana.com"
-    : "https://api.devnet.solana.com";
+    ? [
+        "https://api.mainnet-beta.solana.com",
+        "https://solana-api.projectserum.com",
+        "https://rpc.ankr.com/solana",
+        "https://solana-mainnet.rpcpool.com"
+      ]
+    : [
+        "https://api.devnet.solana.com",
+        "https://devnet.solana.com"
+      ];
 const TREASURY = "84QqigQqzLsyXMpuhaKKwhaY91D48MGhvBLQGWAZtbGd";
 const USDC_DECIMALS = 6;
 const MIN_USDC = 10;
@@ -84,6 +92,7 @@ let currentUsdcBalance = null;
 let currentUsdcAta = null;
 let lastSignature = null;
 let providerEventsBound = false;
+let rpcEndpointInUse = "";
 
 // Module + wallet helpers
 async function loadModule(primary, fallback) {
@@ -216,6 +225,9 @@ async function ensureAta(owner, mint, payer) {
     info = await connection.getAccountInfo(ata);
   } catch (err) {
     console.error("ATA lookup failed", err);
+    if (isRpcForbidden(err)) {
+      throw new Error("RPC blocked (403). Please switch to a different RPC.");
+    }
   }
   const ix = info ? null : createAssociatedTokenAccountInstruction(payer, ata, owner, mint);
   return { ata, ix, exists: !!info };
@@ -274,14 +286,24 @@ async function fetchUsdcBalance() {
     const owner = new PublicKey(wallet);
     const mint = new PublicKey(USDC_MINT);
     const resp = await connection.getParsedTokenAccountsByOwner(owner, { mint });
+
     let balance = 0;
     currentUsdcAta = null;
+
     if (resp.value && resp.value.length > 0) {
-      const acct = resp.value[0];
-      balance =
-        acct.account.data.parsed.info.tokenAmount.uiAmount || 0;
-      currentUsdcAta = acct.pubkey;
+      const sorted = resp.value
+        .map((acct) => ({
+          pubkey: acct.pubkey,
+          amount: acct.account.data.parsed.info.tokenAmount.uiAmount || 0
+        }))
+        .sort((a, b) => b.amount - a.amount);
+
+      if (sorted.length) {
+        balance = sorted[0].amount;
+        currentUsdcAta = sorted[0].pubkey;
+      }
     }
+
     currentUsdcBalance = balance;
     updateStatusUI();
   } catch (err) {
@@ -291,6 +313,26 @@ async function fetchUsdcBalance() {
     setMessage("Could not read USDC balance (RPC limit).", "text-amber-300");
     updateStatusUI();
   }
+}
+
+function isRpcForbidden(err) {
+  const msg = (err?.message || "").toLowerCase();
+  return msg.includes("403") || msg.includes("forbidden");
+}
+
+async function initConnection() {
+  for (const url of RPC_ENDPOINTS) {
+    try {
+      const conn = new web3.Connection(url, "confirmed");
+      await conn.getVersion();
+      rpcEndpointInUse = url;
+      console.log("RPC selected:", url);
+      return conn;
+    } catch (err) {
+      console.warn("RPC failed", url, err?.message || err);
+    }
+  }
+  throw new Error("All RPC endpoints blocked. Please set a custom RPC.");
 }
 
 async function connectPhantom() {
@@ -315,6 +357,38 @@ async function connectPhantom() {
   }
 }
 
+async function resolveOwnerUsdcAta() {
+  if (currentUsdcAta) return new web3.PublicKey(currentUsdcAta);
+
+  const { PublicKey } = web3;
+  const owner = new PublicKey(wallet);
+  const mint = new PublicKey(USDC_MINT);
+  let resp;
+  try {
+    resp = await connection.getParsedTokenAccountsByOwner(owner, { mint });
+  } catch (err) {
+    if (isRpcForbidden(err)) {
+      throw new Error("RPC blocked (403). Please switch RPC.");
+    }
+    throw err;
+  }
+
+  if (!resp.value || resp.value.length === 0) {
+    throw new Error("No USDC token account found for this wallet.");
+  }
+
+  const sorted = resp.value
+    .map((acct) => ({
+      pubkey: acct.pubkey,
+      amount: acct.account.data.parsed.info.tokenAmount.uiAmount || 0
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  currentUsdcAta = sorted[0].pubkey;
+  currentUsdcBalance = sorted[0].amount;
+  return new PublicKey(currentUsdcAta);
+}
+
 async function transferUsdc(amount) {
   const { PublicKey, Transaction } = web3;
   const {
@@ -325,7 +399,7 @@ async function transferUsdc(amount) {
   const mint = new PublicKey(USDC_MINT);
   const treasury = new PublicKey(TREASURY);
 
-  const { ata: fromAta } = await ensureAta(owner, mint, owner);
+  const fromAta = await resolveOwnerUsdcAta();
   const { ata: toAta, ix: createToAta } = await ensureAta(treasury, mint, owner);
 
   const tx = new Transaction();
@@ -344,8 +418,16 @@ async function transferUsdc(amount) {
   );
 
   tx.feePayer = owner;
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash();
+  let blockhashObj;
+  try {
+    blockhashObj = await connection.getLatestBlockhash();
+  } catch (err) {
+    if (isRpcForbidden(err)) {
+      setMessage("RPC blocked (403). Please change RPC endpoint.", "text-amber-300");
+    }
+    throw err;
+  }
+  const { blockhash, lastValidBlockHeight } = blockhashObj;
   tx.recentBlockhash = blockhash;
 
   let signature = "";
@@ -371,6 +453,8 @@ async function onBuy() {
     setMessage("Connect wallet first", "text-amber-300");
     return;
   }
+  // refresh balance/ATA before building tx
+  await fetchUsdcBalance();
   const amt = Number(els.amountInput?.value);
   if (!amt || Number.isNaN(amt) || !Number.isFinite(amt)) {
     setMessage("Enter a valid amount", "text-amber-300");
@@ -436,7 +520,7 @@ async function start() {
 
   web3 = await load(WEB3_URL, WEB3_FALLBACK);
   spl = await load(SPL_URL, SPL_FALLBACK);
-  connection = new web3.Connection(RPC_URL, "confirmed");
+  connection = await initConnection();
   if (els.treasury) els.treasury.textContent = TREASURY;
   if (els.feeEstimate) els.feeEstimate.textContent = "Est. network fee: tiny SOL (for transactions)";
   updateEcoEstimate();
