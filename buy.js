@@ -1,5 +1,5 @@
-// buy.js v13
-console.log("EcoSim buy.js v13 loaded");
+// buy.js v20
+console.log("EcoSim buy.js v20 loaded");
 import {
   initializeApp,
   getApps,
@@ -27,6 +27,8 @@ const USDC_MINT =
   NETWORK === "mainnet-beta"
     ? "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
     : "BXXkv6z8ykpGqxpnj6oJ4j5LZb5uMY15qbt7MUH3Y2bU";
+// If you have a private RPC (Helius/QuickNode/etc.), place it here
+const CUSTOM_RPC = "";
 const RPC_ENDPOINTS =
   NETWORK === "mainnet-beta"
     ? [
@@ -326,17 +328,19 @@ function isRpcForbidden(err) {
 }
 
 async function setConnection(idx = 0) {
-  const url = RPC_ENDPOINTS[idx % RPC_ENDPOINTS.length];
+  const list = CUSTOM_RPC ? [CUSTOM_RPC, ...RPC_ENDPOINTS] : RPC_ENDPOINTS;
+  const url = list[idx % list.length];
   const conn = new web3.Connection(url, "confirmed");
   await conn.getVersion();
   connection = conn;
   rpcEndpointInUse = url;
-  rpcIndex = idx % RPC_ENDPOINTS.length;
+  rpcIndex = idx % list.length;
   console.log("RPC selected:", url);
 }
 
 async function rotateRpc() {
-  const total = RPC_ENDPOINTS.length;
+  const list = CUSTOM_RPC ? [CUSTOM_RPC, ...RPC_ENDPOINTS] : RPC_ENDPOINTS;
+  const total = list.length;
   for (let step = 1; step <= total; step++) {
     const next = (rpcIndex + step) % total;
     try {
@@ -350,6 +354,17 @@ async function rotateRpc() {
 }
 
 async function initConnection() {
+  if (CUSTOM_RPC) {
+    try {
+      await setConnection(0);
+      connection = new web3.Connection(CUSTOM_RPC, "confirmed");
+      rpcEndpointInUse = CUSTOM_RPC;
+      console.log("RPC selected (custom):", CUSTOM_RPC);
+      return connection;
+    } catch (err) {
+      console.warn("Custom RPC failed", CUSTOM_RPC, err?.message || err);
+    }
+  }
   for (const url of RPC_ENDPOINTS) {
     try {
       const conn = new web3.Connection(url, "confirmed");
