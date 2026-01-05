@@ -1,5 +1,5 @@
-// buy.js v22
-console.log("EcoSim buy.js v22 loaded");
+// buy.js v23
+console.log("EcoSim buy.js v23 loaded");
 import {
   initializeApp,
   getApps,
@@ -28,7 +28,7 @@ const USDC_MINT =
     ? "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
     : "BXXkv6z8ykpGqxpnj6oJ4j5LZb5uMY15qbt7MUH3Y2bU";
 // If you have a private RPC (Helius/QuickNode/etc.), set via ?rpc=YOUR_URL or fill below
-let CUSTOM_RPC = "";
+let CUSTOM_RPC = "https://mainnet.helius-rpc.com/api-key=a17493c8-01c7-4c42-89e2-1c0011a32233";
 try {
   const stored = localStorage.getItem("customRpc");
   if (stored) {
