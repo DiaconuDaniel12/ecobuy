@@ -1,5 +1,5 @@
-// buy.js v32
-console.log("EcoSim buy.js v32 loaded");
+// buy.js v33
+console.log("EcoSim buy.js v33 loaded");
 import {
   initializeApp,
   getApps,
@@ -12,7 +12,8 @@ import {
   setDoc,
   updateDoc,
   serverTimestamp,
-  increment
+  increment,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Solana libs (browser bundle + fallback)
@@ -212,34 +213,54 @@ async function loadUserStats(walletAddress) {
 }
 
 async function recordPurchase(walletAddress, ecoAmount, signature, usdcAmount) {
-  if (!walletAddress) return;
+  if (!walletAddress || !signature) return;
   const ecoInt = Number.isFinite(ecoAmount)
     ? Math.max(0, Math.round(ecoAmount))
     : 0;
-  const pointsEarned = Math.max(0, Math.round(ecoInt / 100));
+  const usdc = Number.isFinite(usdcAmount)
+    ? Math.max(0, Math.round(usdcAmount * 1000000) / 1000000)
+    : 0;
+  const pointsEarned = Math.max(0, Math.round(usdc * 2)); // 2 points / USDC
 
-  const ref = doc(firestore, "users", walletAddress);
-  await setDoc(
-    ref,
-    {
+  const userRef = doc(firestore, "users", walletAddress);
+  const purchaseRef = doc(firestore, "users", walletAddress, "purchases", signature);
+
+  await runTransaction(firestore, async (tx) => {
+    const purchaseSnap = await tx.get(purchaseRef);
+    if (purchaseSnap.exists()) {
+      return; // idempotent: do nothing if already recorded
+    }
+
+    tx.set(purchaseRef, {
       wallet: walletAddress,
-      hasPurchased: true,
-      lastPurchaseSig: signature || "",
-      lastPurchaseUsdc: usdcAmount || 0,
-      lastPurchaseAt: serverTimestamp(),
-      lastSeenAt: serverTimestamp()
-    },
-    { merge: true }
-  );
+      signature,
+      amountUsdc: usdc,
+      amountEco: ecoInt,
+      points: pointsEarned,
+      createdAt: serverTimestamp()
+    });
 
-  const updates = {};
-  if (ecoInt) updates.totalBought = increment(ecoInt);
-  if (ecoInt) updates.totalBoughtEco = increment(ecoInt);
-  if (pointsEarned) updates.points = increment(pointsEarned);
-  updates.purchaseCount = increment(1);
-  if (Object.keys(updates).length) {
-    await updateDoc(ref, updates);
-  }
+    tx.set(
+      userRef,
+      {
+        wallet: walletAddress,
+        hasPurchased: true,
+        lastPurchaseSig: signature,
+        lastPurchaseUsdc: usdc,
+        lastPurchaseAt: serverTimestamp(),
+        lastSeenAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+
+    tx.update(userRef, {
+      totalBought: increment(ecoInt),
+      totalBoughtEco: increment(ecoInt),
+      totalBoughtUsdc: increment(usdc),
+      purchaseCount: increment(1),
+      points: increment(pointsEarned)
+    });
+  });
 }
 
 async function ensureAta(owner, mint, payer) {
