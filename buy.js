@@ -1,5 +1,5 @@
-// buy.js v33
-console.log("EcoSim buy.js v33 loaded");
+// buy.js v34
+console.log("EcoSim buy.js v34 loaded");
 import {
   initializeApp,
   getApps,
@@ -87,6 +87,7 @@ const els = {
   walletPill: document.getElementById("walletPill"),
   walletMini: document.getElementById("walletMini"),
   totalBought: document.getElementById("totalBought"),
+  totalUsdcBought: document.getElementById("totalUsdcBought"),
   points: document.getElementById("points"),
   usdcBalance: document.getElementById("usdcBalance"),
   lastTx: document.getElementById("lastTx"),
@@ -207,8 +208,10 @@ async function loadUserStats(walletAddress) {
   const snap = await getDoc(ref);
   const data = snap.exists() ? snap.data() || {} : {};
   const total = Number(data.totalBought || 0);
+  const totalUsdc = Number(data.totalBoughtUsdc || 0);
   const pts = Number(data.points || 0);
   if (els.totalBought) els.totalBought.textContent = total.toLocaleString();
+  if (els.totalUsdcBought) els.totalUsdcBought.textContent = totalUsdc.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
   if (els.points) els.points.textContent = pts.toLocaleString();
 }
 
