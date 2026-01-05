@@ -1,5 +1,5 @@
-// buy.js v20
-console.log("EcoSim buy.js v20 loaded");
+// buy.js v21
+console.log("EcoSim buy.js v21 loaded");
 import {
   initializeApp,
   getApps,
@@ -27,8 +27,18 @@ const USDC_MINT =
   NETWORK === "mainnet-beta"
     ? "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
     : "BXXkv6z8ykpGqxpnj6oJ4j5LZb5uMY15qbt7MUH3Y2bU";
-// If you have a private RPC (Helius/QuickNode/etc.), place it here
-const CUSTOM_RPC = "";
+// If you have a private RPC (Helius/QuickNode/etc.), set via ?rpc=YOUR_URL or fill below
+let CUSTOM_RPC = "";
+try {
+  const params = new URLSearchParams(window.location.search);
+  const rpcParam = params.get("rpc");
+  if (rpcParam) {
+    CUSTOM_RPC = decodeURIComponent(rpcParam);
+    console.log("Custom RPC from URL:", CUSTOM_RPC);
+  }
+} catch (_) {
+  // ignore
+}
 const RPC_ENDPOINTS =
   NETWORK === "mainnet-beta"
     ? [
