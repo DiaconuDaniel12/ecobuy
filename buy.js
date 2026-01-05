@@ -1,5 +1,5 @@
-// buy.js v27
-console.log("EcoSim buy.js v27 loaded");
+// buy.js v28
+console.log("EcoSim buy.js v28 loaded");
 import {
   initializeApp,
   getApps,
@@ -576,7 +576,13 @@ async function onBuy() {
     if (msg.includes("insufficient") || msg.includes("balance")) {
       setMessage("Not enough USDC. Check your wallet balance.", "text-amber-300");
     } else {
-      setMessage(`Could not complete purchase: ${err.message || err}`, "text-rose-300");
+      if (msg.includes("expired") || msg.includes("block height")) {
+        setMessage("Signature expired (blockhash too old). Please tap Buy again quickly.", "text-amber-300");
+      } else if (err?.message || err) {
+        setMessage(`Could not complete purchase: ${err.message || err}`, "text-rose-300");
+      } else {
+        setMessage("Could not complete purchase.", "text-rose-300");
+      }
     }
   } finally {
     els.payBtn.disabled = false;
