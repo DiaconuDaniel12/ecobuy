@@ -1,5 +1,5 @@
-// buy.js v29
-console.log("EcoSim buy.js v29 loaded");
+// buy.js v30
+console.log("EcoSim buy.js v30 loaded");
 import {
   initializeApp,
   getApps,
@@ -15,8 +15,8 @@ import {
   increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Solana libs (browser ESM + fallback) - avoid node ws polyfill
-const WEB3_URL = "https://unpkg.com/@solana/web3.js@1.91.7/lib/index.browser.esm.js";
+// Solana libs (browser bundle + fallback)
+const WEB3_URL = "https://esm.sh/@solana/web3.js@1.91.7?target=es2020&bundle&no-dts";
 const WEB3_FALLBACK = "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.7/lib/index.browser.esm.js";
 const SPL_URL = "https://cdn.jsdelivr.net/npm/@solana/spl-token@0.3.11/+esm?v=2";
 const SPL_FALLBACK = "https://esm.sh/@solana/spl-token@0.3.11?target=es2020&v=2";
