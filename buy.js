@@ -109,27 +109,20 @@ const updateEcoEstimate = () => {
 const updateStatusUI = () => {
   const connected = !!wallet;
   const amt = Number(els.amountInput?.value);
-  const amountInvalid =
-    !amt || amt < MIN_USDC || amt > MAX_USDC || Number.isNaN(amt) || !Number.isFinite(amt);
+  const amountInvalid = !amt || amt < MIN_USDC || amt > MAX_USDC || Number.isNaN(amt) || !Number.isFinite(amt);
 
   if (els.walletPill)
-    els.walletPill.textContent = connected
-      ? `Connected: ${shorten(wallet?.toString?.() || wallet)}`
-      : "Not connected";
+    els.walletPill.textContent = connected ? `Connected: ${shorten(wallet?.toString?.() || wallet)}` : "Not connected";
   if (els.walletMini)
-    els.walletMini.textContent = connected ? wallet?.toString?.() || wallet : "-";
+    els.walletMini.textContent = connected ? (wallet?.toString?.() || wallet) : "-";
   if (els.connStatus)
-    els.connStatus.textContent = connected ? "Connected ✅" : "Not connected";
+    els.connStatus.textContent = connected ? "Connected" : "Not connected";
   if (els.usdcBalance)
-    els.usdcBalance.textContent =
-      currentUsdcBalance === null
-        ? "-"
-        : `${currentUsdcBalance.toLocaleString()} USDC`;
+    els.usdcBalance.textContent = currentUsdcBalance === null ? "-" : `${currentUsdcBalance.toLocaleString()} USDC`;
   if (els.lastTx)
     els.lastTx.textContent = lastSignature ? lastSignature : "-";
 
-  const disableBuy =
-    !connected || currentUsdcBalance === null || currentUsdcAta === null || amountInvalid;
+  const disableBuy = !connected || currentUsdcBalance === null || currentUsdcAta === null || amountInvalid;
   if (els.payBtn) {
     els.payBtn.disabled = disableBuy;
     els.payBtn.title = disableBuy
@@ -137,108 +130,6 @@ const updateStatusUI = () => {
       : "";
   }
 };
-
-// Firestore helpers
-async function ensureUserDocument(walletAddress) {
-  const ref = doc(firestore, "users", walletAddress);
-  const snap = await getDoc(ref);
-  if (snap.exists()) {
-    await setDoc(ref, { lastSeenAt: serverTimestamp() }, { merge: true });
-    return;
-  }
-  await setDoc(ref, {
-    wallet: walletAddress,
-    points: 0,
-    totalBoughtEco: 0,
-    purchaseCount: 0,
-    lastPurchaseSig: "",
-    createdAt: serverTimestamp(),
-    lastSeenAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-}
-
-async function loadUserStats(walletAddress) {
-  const ref = doc(firestore, "users", walletAddress);
-  const snap = await GetDocSafe(ref);
-  if (!snap) return;
-  const data = snap.data();
-  if (els.totalBought) els.totalBought.textContent = (data.totalBoughtEco ?? 0).toLocaleString();
-  if (els.points) els.points.textContent = (data.points ?? 0).toLocaleString();
-  if (data.lastPurchaseSig) {
-    lastSignature = data.lastPurchaseSig;
-    if (els.lastTx) els.lastTx.textContent = lastSignature;
-  }
-}
-
-// Safe wrapper around getDoc (avoid crash if missing firestore)
-async function GetDocSafe(ref) {
-  try {
-    const snap = await getDoc(ref);
-    return snap.exists() ? snap : null;
-  } catch (e) {
-    console.error("getDoc failed", e);
-    return null;
-  }
-}
-
-async function recordPurchase(walletAddress, ecoAmount, signature, amountUSDC) {
-  const userRef = doc(firestore, "users", walletAddress);
-  await updateDoc(userRef, {
-    totalBoughtEco: increment(ecoAmount),
-    purchaseCount: increment(1),
-    lastPurchaseSig: signature,
-    updatedAt: serverTimestamp()
-  });
-  await setDoc(doc(firestore, "purchases", signature), {
-    wallet: walletAddress,
-    amountUSDC,
-    ecoAmount,
-    signature,
-    network: NETWORK,
-    createdAt: serverTimestamp()
-  });
-}
-
-// Solana helpers
-async function loadModule(primary, fallback) {
-  try {
-    return await import(primary);
-  } catch (err) {
-    console.warn("Primary import failed, trying fallback:", err);
-    return await import(fallback);
-  }
-}
-
-function getProvider() {
-  if ("solana" in window) {
-    const p = window.solana;
-    if (p?.isPhantom) return p;
-  }
-  return null;
-}
-
-async function ensureAta(owner, mint, payer) {
-  const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } = spl;
-  const ata = await getAssociatedTokenAddress(mint, owner, false);
-  let info;
-  try {
-    info = await connection.getAccountInfo(ata);
-  } catch (err) {
-    const msg = err?.message || "";
-    if (
-      msg.includes("403") ||
-      msg.toLowerCase().includes("forbidden") ||
-      msg.toLowerCase().includes("failed to get info about account")
-    ) {
-      throw new Error("Make sure you have enough USDC and SOL for fees.");
-    }
-    throw err;
-  }
-  const ix = info
-    ? null
-    : createAssociatedTokenAccountInstruction(payer, ata, owner, mint);
-  return { ata, ix, exists: !!info };
 }
 
 async function fetchUsdcBalance() {
@@ -433,3 +324,5 @@ start().catch((e) => {
   console.error("Init failed", e);
   setMessage("Could not load Solana modules.", "text-rose-300");
 });
+
+
