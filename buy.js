@@ -1,5 +1,5 @@
-// buy.js v8
-console.log("EcoSim buy.js v8 loaded");
+// buy.js v9
+console.log("EcoSim buy.js v9 loaded");
 import {
   initializeApp,
   getApps,
@@ -247,9 +247,6 @@ const updateEcoEstimate = () => {
 
 const updateStatusUI = () => {
   const connected = !!wallet;
-  const amt = Number(els.amountInput?.value);
-  const amountInvalid = !amt || amt < MIN_USDC || amt > MAX_USDC || Number.isNaN(amt) || !Number.isFinite(amt);
-
   if (els.walletPill)
     els.walletPill.textContent = connected ? `Connected: ${shorten(wallet?.toString?.() || wallet)}` : "Not connected";
   if (els.walletMini)
@@ -261,11 +258,11 @@ const updateStatusUI = () => {
   if (els.lastTx)
     els.lastTx.textContent = lastSignature ? lastSignature : "-";
 
-  const disableBuy = !connected || amountInvalid;
+  const disableBuy = !connected;
   if (els.payBtn) {
     els.payBtn.disabled = disableBuy;
     els.payBtn.title = disableBuy
-      ? `Connect wallet, amount ${MIN_USDC}-${MAX_USDC} USDC`
+      ? `Connect wallet first`
       : "";
   }
 };
@@ -377,9 +374,6 @@ async function onBuy() {
     setMessage("Connect wallet first", "text-amber-300");
     return;
   }
-  if (currentUsdcBalance === null || currentUsdcAta === null) {
-    await fetchUsdcBalance();
-  }
   const amt = Number(els.amountInput?.value);
   if (!amt || Number.isNaN(amt) || !Number.isFinite(amt)) {
     setMessage("Enter a valid amount", "text-amber-300");
@@ -387,10 +381,6 @@ async function onBuy() {
   }
   if (amt < MIN_USDC || amt > MAX_USDC) {
     setMessage(`Amount must be between ${MIN_USDC} and ${MAX_USDC} USDC.`, "text-amber-300");
-    return;
-  }
-  if (currentUsdcBalance !== null && amt > currentUsdcBalance) {
-    setMessage("Not enough USDC. Top up or try a smaller amount.", "text-amber-300");
     return;
   }
 
@@ -417,7 +407,12 @@ async function onBuy() {
     }
   } catch (err) {
     console.error(err);
-    setMessage(`Could not complete purchase: ${err.message || err}`, "text-rose-300");
+    const msg = (err?.message || "").toLowerCase();
+    if (msg.includes("insufficient") || msg.includes("balance")) {
+      setMessage("Not enough USDC. Check your wallet balance.", "text-amber-300");
+    } else {
+      setMessage(`Could not complete purchase: ${err.message || err}`, "text-rose-300");
+    }
   } finally {
     els.payBtn.disabled = false;
   }
