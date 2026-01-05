@@ -31,8 +31,8 @@ const RPC_URL =
     : "https://api.devnet.solana.com";
 const TREASURY = "84QqigQqzLsyXMpuhaKKwhaY91D48MGhvBLQGWAZtbGd";
 const USDC_DECIMALS = 6;
-const MIN_USDC = 1;
-const MAX_USDC = 10;
+const MIN_USDC = 10;
+const MAX_USDC = 1000;
 const ECO_PER_USDC = 50000;
 const EXPLORER_BASE =
   NETWORK === "mainnet-beta"
