@@ -1,5 +1,5 @@
-// buy.js v24
-console.log("EcoSim buy.js v24 loaded");
+// buy.js v26
+console.log("EcoSim buy.js v26 loaded");
 import {
   initializeApp,
   getApps,
@@ -549,9 +549,18 @@ async function onBuy() {
     lastSignature = sig;
     if (els.lastTx) els.lastTx.textContent = sig;
 
-    await recordPurchase(wallet, ecoAmount, sig, amt);
-    await loadUserStats(wallet);
-    await fetchUsdcBalance();
+    try {
+      await recordPurchase(wallet, ecoAmount, sig, amt);
+      await loadUserStats(wallet);
+      await fetchUsdcBalance();
+    } catch (dbErr) {
+      console.error("Firestore update failed", dbErr);
+      const reason = dbErr?.message || dbErr;
+      setMessage(`Tx ok, DB failed: ${reason}`, "text-amber-300");
+      if (els.result) {
+        els.result.textContent = `Tx saved on-chain; DB error: ${reason}`;
+      }
+    }
 
     const link = `${EXPLORER_BASE}${sig}`;
     setMessage(
