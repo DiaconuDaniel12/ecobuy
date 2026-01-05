@@ -1,5 +1,5 @@
-// buy.js v9
-console.log("EcoSim buy.js v9 loaded");
+// buy.js v10
+console.log("EcoSim buy.js v10 loaded");
 import {
   initializeApp,
   getApps,
@@ -325,10 +325,7 @@ async function transferUsdc(amount) {
   const mint = new PublicKey(USDC_MINT);
   const treasury = new PublicKey(TREASURY);
 
-  const { ata: fromAta, exists: fromExists } = await ensureAta(owner, mint, owner);
-  if (!fromExists) {
-    throw new Error("No USDC found in your wallet (ATA missing).");
-  }
+  const { ata: fromAta } = await ensureAta(owner, mint, owner);
   const { ata: toAta, ix: createToAta } = await ensureAta(treasury, mint, owner);
 
   const tx = new Transaction();
