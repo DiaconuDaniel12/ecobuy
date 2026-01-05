@@ -82,6 +82,90 @@ let currentUsdcBalance = null;
 let currentUsdcAta = null;
 let lastSignature = null;
 
+// Module + wallet helpers
+async function loadModule(primary, fallback) {
+  try {
+    return await import(primary);
+  } catch (err) {
+    console.warn("Primary import failed, using fallback:", err);
+    return await import(fallback);
+  }
+}
+
+function getProvider() {
+  if ("solana" in window) {
+    const sol = window.solana;
+    if (sol?.isPhantom) return sol;
+    if (Array.isArray(sol?.providers)) {
+      const phantom = sol.providers.find((p) => p?.isPhantom);
+      if (phantom) return phantom;
+    }
+  }
+  return null;
+}
+
+async function ensureUserDocument(walletAddress) {
+  if (!walletAddress) return;
+  const ref = doc(firestore, "users", walletAddress);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(
+      ref,
+      {
+        wallet: walletAddress,
+        points: 0,
+        totalBought: 0,
+        hasPurchased: false,
+        createdAt: serverTimestamp(),
+        lastSeenAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+    return;
+  }
+  await setDoc(ref, { lastSeenAt: serverTimestamp() }, { merge: true });
+}
+
+async function loadUserStats(walletAddress) {
+  if (!walletAddress) return;
+  const ref = doc(firestore, "users", walletAddress);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() || {} : {};
+  const total = Number(data.totalBought || 0);
+  const pts = Number(data.points || 0);
+  if (els.totalBought) els.totalBought.textContent = total.toLocaleString();
+  if (els.points) els.points.textContent = pts.toLocaleString();
+}
+
+async function recordPurchase(walletAddress, ecoAmount, signature, usdcAmount) {
+  if (!walletAddress) return;
+  const ecoInt = Number.isFinite(ecoAmount)
+    ? Math.max(0, Math.round(ecoAmount))
+    : 0;
+  const pointsEarned = Math.max(0, Math.round(ecoInt / 100));
+
+  const ref = doc(firestore, "users", walletAddress);
+  await setDoc(
+    ref,
+    {
+      wallet: walletAddress,
+      hasPurchased: true,
+      lastPurchaseSig: signature || "",
+      lastPurchaseUsdc: usdcAmount || 0,
+      lastPurchaseAt: serverTimestamp(),
+      lastSeenAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  const updates = {};
+  if (ecoInt) updates.totalBought = increment(ecoInt);
+  if (pointsEarned) updates.points = increment(pointsEarned);
+  if (Object.keys(updates).length) {
+    await updateDoc(ref, updates);
+  }
+}
+
 // Helpers
 const shorten = (addr) =>
   addr ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : "-";
@@ -301,8 +385,18 @@ function copyPresale() {
 
 // Init
 async function start() {
-  web3 = await loadModule(WEB3_URL, WEB3_FALLBACK);
-  spl = await loadModule(SPL_URL, SPL_FALLBACK);
+  // Local loader in case bundlers/old caches missed the helper
+  const load = async (primary, fallback) => {
+    try {
+      return await import(primary);
+    } catch (err) {
+      console.warn("Primary import failed, using fallback:", err);
+      return await import(fallback);
+    }
+  };
+
+  web3 = await load(WEB3_URL, WEB3_FALLBACK);
+  spl = await load(SPL_URL, SPL_FALLBACK);
   connection = new web3.Connection(RPC_URL, "confirmed");
   if (els.treasury) els.treasury.textContent = TREASURY;
   if (els.feeEstimate) els.feeEstimate.textContent = "Est. network fee: tiny SOL (for transactions)";
@@ -323,4 +417,3 @@ start().catch((e) => {
   console.error("Init failed", e);
   setMessage("Could not load Solana modules.", "text-rose-300");
 });
-
